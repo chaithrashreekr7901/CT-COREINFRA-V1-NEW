@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Production S3 bucket with logging - fully working configuration'
+Description: 'Production S3 bucket with logging'
 
 Resources:
   LoggingBucket:
