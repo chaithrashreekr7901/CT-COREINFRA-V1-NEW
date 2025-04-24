@@ -1,28 +1,41 @@
 #!/usr/bin/env python3
-import os
 
-import aws_cdk as cdk
+import logging
+import sys
+from aws_cdk import App, Environment
+from stacks.vpc_stack import VPCStack
+from stacks.s3_stack import S3Stack
+from config.global_config import GLOBAL_CONFIG
 
-from aws_cloud_resource_manager.aws_cloud_resource_manager_stack import AwsCloudResourceManagerStack
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
+def main():
+    app = App()
 
-app = cdk.App()
-AwsCloudResourceManagerStack(app, "AwsCloudResourceManagerStack",
-    # If you don't specify 'env', this stack will be environment-agnostic.
-    # Account/Region-dependent features and context lookups will not work,
-    # but a single synthesized template can be deployed anywhere.
+    try:
+        # Get command line arguments
+        stacks_to_deploy = sys.argv[1:] if len(sys.argv) > 1 else ['all']
+        
+        env = Environment(
+            account=GLOBAL_CONFIG['account_id'],
+            region=GLOBAL_CONFIG['region']
+        )
 
-    # Uncomment the next line to specialize this stack for the AWS Account
-    # and Region that are implied by the current CLI configuration.
+        # Create stacks based on command line arguments
+        if 'all' in stacks_to_deploy or 'vpc' in stacks_to_deploy:
+            logging.info("🚀 Including VPC Stack in deployment...")
+            VPCStack(app, "VPCStack", env=env)
+        
+        if 'all' in stacks_to_deploy or 's3' in stacks_to_deploy:
+            logging.info("🚀 Including S3 Stack in deployment...")
+            S3Stack(app, "S3Stack", env=env)
 
-    #env=cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION')),
+        app.synth()
+        logging.info("✅ CDK application synthesized successfully.")
 
-    # Uncomment the next line if you know exactly what Account and Region you
-    # want to deploy the stack to. */
+    except Exception as e:
+        logging.error(f"💥 Error in stack deployment: {e}", exc_info=True)
+        raise
 
-    #env=cdk.Environment(account='123456789012', region='us-east-1'),
-
-    # For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html
-    )
-
-app.synth()
+if __name__ == '__main__':
+    main()

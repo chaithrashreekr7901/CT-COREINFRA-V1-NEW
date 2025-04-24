@@ -1,0 +1,49 @@
+name: CDK Deploy Pipeline
+
+on:
+  push:
+    branches: [ main, chaithra ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        npm install -g aws-cdk
+    
+    - name: Run Tests
+      run: |
+        pip install pytest
+        pytest
+        
+    - name: CDK Synth
+      run: cdk synth
+    
+    - name: Configure AWS credentials
+      if: github.ref == 'refs/heads/chaithra' || github.ref == 'refs/heads/main'
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: CDK Deploy to Dev
+      if: github.ref == 'refs/heads/chaithra'
+      run: cdk deploy --all --require-approval never
+      
+    - name: CDK Deploy to Prod
+      if: github.ref == 'refs/heads/main'
+      run: cdk deploy --all --require-approval never
