@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CRMF Project - VPC in us-east-1 (North Virginia)
+
+Resources:
+  CRMFVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.10.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: crmf-vpc-nv
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CRMFVPC
+      CidrBlock: 10.10.1.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs 'us-east-1' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: crmf-public-subnet-nv
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: crmf-igw-nv
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref CRMFVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CRMFVPC
+      Tags:
+        - Key: Name
+          Value: crmf-rt-nv
+
+  Route:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+Outputs:
+  VPCId:
+    Description: Created VPC ID
+    Value: !Ref CRMFVPC
+  SubnetId:
+    Description: Public Subnet ID
+    Value: !Ref PublicSubnet
